@@ -1,5 +1,9 @@
 "use client";
-import { useAccount, useDisconnect, useStarkName } from "@starknet-react/core";
+import {
+  useAccount,
+  useDisconnect,
+  useStarkProfile,
+} from "@starknet-react/core";
 import Blockies from "react-blockies";
 import Image from "next/image";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
@@ -16,6 +20,9 @@ export const UserModal = ({
 }) => {
   const [animate, setAnimate] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const { data: starkProfile } = useStarkProfile({
+    address,
+  });
 
   const closeModal = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
@@ -43,9 +50,10 @@ export const UserModal = ({
 
   function handleCopyClick() {
     if (!address) return;
-    navigator.clipboard.writeText(address);
+    navigator.clipboard.writeText(starkProfile?.name || address);
     setIsCopied(true);
   }
+
   const { disconnect } = useDisconnect();
 
   return (
@@ -57,18 +65,27 @@ export const UserModal = ({
     >
       <div className="flex flex-col items-center justify-center h-full w-full">
         <div className="flex h-[80%] w-[80%] flex-col items-center justify-evenly">
-          <Blockies
-            seed={address}
-            scale={15}
-            className="rounded-full h-24 w-24"
-          />
+          {starkProfile?.profilePicture ? (
+            <img
+              src={starkProfile?.profilePicture}
+              className="rounded-full h-[120px] w-[120px] mr-2"
+              alt="starknet profile"
+            />
+          ) : (
+            <Blockies
+              seed={address}
+              scale={15}
+              className="rounded-full h-24 w-24"
+            />
+          )}
           <span className="flex justify-between p-3 border-[1px] border-outline-gray rounded-full w-full">
             <span className="flex justify-center">
-              {address?.slice(0, 12).concat("...").concat(address?.slice(-5))}
+              {starkProfile?.name ||
+                address?.slice(0, 12).concat("...").concat(address?.slice(-5))}
             </span>
             <Image
               onClick={handleCopyClick}
-              className="border-l-[1px] border-outline-grey border-solid pl-1"
+              className="border-l-[1px] border-outline-grey border-solid pl-1 cursor-pointer"
               src={isCopied ? "/assets/tick.svg" : "/assets/copy.svg"}
               width={20}
               height={20}
@@ -97,7 +114,7 @@ const AddressBar = ({
   setOpenConnectedModal: Dispatch<SetStateAction<boolean>>;
 }) => {
   const { address } = useAccount();
-  const { data, isLoading, isError } = useStarkName({
+  const { data: starkProfile } = useStarkProfile({
     address,
   });
 
@@ -114,19 +131,22 @@ const AddressBar = ({
       onClick={toggleModal}
       className="bg-blue-500 py-2 px-4 text-white rounded-full transition duration-300"
     >
-      {isLoading && <span>Loading...</span>}
-      {isError && (
+      {
         <span className="flex items-center">
-          <Blockies seed={address} className="rounded-full h-3 w-3 mr-2" />
-          {address?.slice(0, 6).concat("...").concat(address?.slice(-5))}
+          {starkProfile?.profilePicture ? (
+            <img
+              src={starkProfile?.profilePicture}
+              className="rounded-full h-8 w-8 mr-2"
+              alt="starknet profile"
+            />
+          ) : (
+            <Blockies seed={address} className="rounded-full h-8 w-8 mr-2" />
+          )}
+          {starkProfile?.name
+            ? starkProfile.name
+            : address?.slice(0, 6).concat("...").concat(address?.slice(-5))}
         </span>
-      )}
-      {data && (
-        <span className="flex items-center">
-          <Blockies seed={address} className="rounded-full h-3 w-3" />
-          {data}
-        </span>
-      )}
+      }
     </button>
   );
 };
